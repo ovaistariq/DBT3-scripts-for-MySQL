@@ -1,0 +1,21 @@
+#
+# This file is released under the terms of the Artistic License.
+# Please see the file LICENSE, included in this package, for details.
+#
+# Copyright (c) 2008 Ingres Corp.
+#
+# fields are
+# file list_of_column#s_separated_by_comma (origin 1)
+# e.g.:
+# test.tbl 3,6,9
+#   |==== will perform a multiple-field sort on test.tbl on 3th, 6th and 9th fields
+#
+lineitem.tbl 11
+orders.tbl 5
+#
+#partsupp.tbl
+#customer.tbl 
+#nation.tbl
+#part.tbl
+#region.tbl
+#supplier.tbl

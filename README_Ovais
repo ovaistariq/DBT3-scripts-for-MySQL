@@ -1,0 +1,62 @@
+=== Installation ======================================================
+No installation is needed
+
+=== Dependencies ======================================================
+- Perl
+- MySQL Sandbox by Giuseppe Maxia version 3.0.25
+The MySQL related DBT3 benchmark scripts rely heavily on MySQL Sandbox as its tightly coupled with the rest of the script.
+
+=== Changes needed to make it work with your environment ==============
+- Since this is a quickly hacked up version so there are many things that are hardcoded, however, I have not hardcoded the paths and exposed them as variables inside the script that you will have to change based on your environment.
+
+- Changing the paths in scripts/dbt3_profile
+## Make changes to the paths below according to your environment
+DBT3_ROOT="/mnt/data/benchmarks/dbt3"
+DSS_PATH="/mnt/data/benchmarks/dbt3_table_dumps"
+
+- Changing the paths in scripts/mysql/mariadb53_profile
+## Please change the paths here
+rm /mnt/data/benchmarks/db_data/mysql
+ln -s /mnt/data/sandboxes/msb_md5_3_5/data/mysql /mnt/data/benchmarks/db_data/mysql
+export SANDBOX_HOME="/mnt/data/sandboxes"
+
+- Changing the paths in scripts/mysql/mariadb55_profile
+## Please change the paths here
+rm /mnt/data/benchmarks/db_data/mysql
+ln -s /mnt/data/sandboxes/msb_md5_5_20/data/mysql /mnt/data/benchmarks/db_data/mysql
+export SANDBOX_HOME="/mnt/data/sandboxes"
+
+- Changing the paths in scripts/mysql/mysql55_profile
+## Please change the paths here according to your requirements
+rm /mnt/data/benchmarks/db_data/mysql
+ln -s /mnt/data/sandboxes/msb_5_5_21/data/mysql /mnt/data/benchmarks/db_data/mysql
+export SANDBOX_HOME="/mnt/data/sandboxes"
+
+- Changing the paths in scripts/mysql/mysql56_profile
+## Please change the paths here according to your environment
+rm /mnt/data/benchmarks/db_data/mysql
+ln -s /mnt/data/sandboxes/msb_5_6_4/data/mysql /mnt/data/benchmarks/db_data/mysql
+export SANDBOX_HOME="/mnt/data/sandboxes"
+
+- Changing the paths in scripts/mysql/power_test_multiple_mysql_versions.sh
+## Change the path here according to your environment
+output_dir_main="/mnt/data/benchmarks/dbt3_output"
+
+- Changing the datadir in the sandboxes config file my.sandbox.cnf
+I have edited the datadir config variable so that it points to the same location for all the different MySQL sandboxes so that you don't have to load up the data separately for every version:
+datadir                         = /mnt/data/benchmarks/db_data
+You will need to change the datadir path according to your environment but after the creation of all the sandboxes, and the benchmark script will take care of symlinking the mysql system databases for the version of MySQL that is currently undergoing the benchmark test.
+
+=== Usage =========================================================================
+-- Generating the dataset
+First generate the dataset, note that you should generate the dataset for the same scale factor for which you will be running the benchmark.
+
+./scripts/mysql/load_test.sh -dbver mysql55 -d dbt3 -s 2 -o /root/dbt3_output
+
+load_test.sh will start the MySQL 5.5 sandbox and create the db 'dbt3' with the dataset for scale factor 2 and store the output of the script in the directory /root/dbt3_output
+
+-- Running the power test for MySQL 5.5, MySQL 5.6 and MariaDB 5.5
+./scripts/mysql/power_test_multiple_mysql_versions.sh -s 2 -d dbt3 -q 10
+
+power_test_multiple_mysql_versions.sh will run power test for MySQL 5.5, MySQL 5.6 and MariaDB 5.5 one by one for a scale factor of 2, DBT3 query #10 and use the database dbt3
+

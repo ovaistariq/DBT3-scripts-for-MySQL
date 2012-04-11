@@ -1,0 +1,286 @@
+                       *******************************
+                       DBT-3 kit for Ingres VectorWise
+                       *******************************
+
+- Installation
+- Data Generation
+- Load Test
+- Power Test
+- Throughput Test
+- Performance Test
+
+=====================================================================================
+>>> Installation
+
+    autoreconf --install
+    ./configure --with-ingres-vectorwise
+    make
+
+    # test scripts are found in the scripts/ingres_vectorwise directory
+    cd scripts/ingres_vectorwise
+
+
+=====================================================================================
+>>> Data Generation
+
+	The gen_data.sh script generates test database data and/or Refresh Data sets. The default is to generate in parallel using 3/4 of the number of processors in the system; optionally, one can control the number of CPUS via -C flag. It uses the TPC-provided DBGEN program to generate data.
+	
+	For Resfreh Data sets one must pass the number of sets to generate (-r), optionally setting the starting set number (-ust).
+	
+	usage: ./gen_data.sh flags
+
+	Required flags:
+	   -df    <dir>     location of the files to be generated
+	   -s     <number>  scale factor
+
+	At least one of following flags is required:
+	   -t               generate test database data files
+	   -r     <number>  generate passed number of Refresh Data Sets
+
+	Optional flags:
+	   -C     <N cpus>  (default=1) number of processes to use for dbgen and sort on each table
+	   -T     <dir>     directory to use for sort space (default=)
+	   -h               this help page
+	   -nm              do NOT merge <N cpus> files or each table back into one file
+	   -S               serialize intra-file generation, i.e., no pieces. Interfile is parallel.
+									this option overrides -C.
+	   -ust   <number>  start to generate refresh data sets from set #<number> (default=1)
+
+
+=====================================================================================
+>>> Load Test script
+
+	The load test creates the database, tables, statistics and includes all activity
+	required to bring the SUT to a state in which a performance test can be
+	executed.
+
+	The load scripts generates the initial seed to be used by QGEN in the power and
+	throughput tests. A test report is generated at the end of the test.
+
+	usage: ./load_test.sh flags
+
+	Required options:
+		 -d    <database name>, not required if using -go
+	Default options:
+		 -t    create tables
+		 -nc   use an existing database;
+			   an error is returned if it does not exists
+		 -df   <flat files directory>  (default=/tmp/data)
+		 -s    scale factor (default=1)
+		 -i    create indexes
+		 -pk   create PKs
+		 -fk   create FKs (PKs will be created too)
+		 -l    load data
+		 -m    run optimizedb after the load
+		 -r    restart the DBMS before the load
+		 -st   collect system statistics
+		 -o    <output dir>  (default=/home/ingres/dbt3/scripts/ingres_vectorwise/output)
+			   dir will be created by the script
+		 -ds   delay between updates (in seconds) for vmstat/iostat
+			   (default=20)
+		 -v    validate tables cardinality
+		 -prof collect profile information
+
+	Other options:
+		 -c     the database is created should it not exists.
+				An existing database is dropped and re-created
+		 -loc   database location name
+		 -h     show this help page
+		 -ni    do not create indexes
+		 -npk   do not create PKs
+		 -nfk   do not create FKs
+		 -nl    do not load data
+		 -nm    do not run optimizedb after loading
+		 -nr    do not restart the DBMS before the load
+		 -nt    do not create tables
+		 -nst   do not collect system statistics
+		 -nv    do not validate tables cardinality
+		 -par   <n> do the load in parallel, default is serial (-par 0).
+				  Flat files must have been previously split with the split.sh
+				  script or dbgen -C -S using the same degree of parallelism.
+		 -nprof do not collect profile information
+
+    Notes:	
+    - test outputs are saved in a numbered output directory (see flag -o)
+    - system statistics (iostat, vmstat) are collected by default; use -nst to disable      
+    - by default the script populates an existing database. To destroy/create the database use the -c flaf
+	- by default it collects x100 profiles, check <output dir>/profiles after the test; use -nprof to not collect profiles
+	- adjust the scale factor as per your needs, the default scale factor is 1
+	- the DBMS is restarted by default before the load, use -nr to not restart
+
+
+=====================================================================================
+>>> Power Test script
+
+    Measure the raw query execution power of the SUT with a single query stream.
+    The queries are submitted by the driver through a single stream; the stream
+    executes queries one after another. A test report is generated at the end of
+    the test.
+
+    usage: ./power_test.sh
+
+	Required flags:
+	   -d     <name>    database name
+	   -df    <dir>     location of the Refresh Data Set files
+	   -s     <number>  scale factor
+
+	Optional flags:
+	   -q     <queries> list of queries to execute. e.g.: 1,5,9
+						(default=all queries, in TPC-H stream 0 order)
+	   -qnr   <number>  number of times to run each query (default=1)
+	   -o     <dir>     where the tests artifacts will be stored (default=/home/ingres/dbt3/scripts/ingres_vectorwise/output)
+	   -sf    <file>    seed file name (default=/home/ingres/dbt3/scripts/ingres_vectorwise/fixed_seed). To use the seed generated by the last load instead, pass -sf seed_file_<database name>.
+	   -val             Execute a Validation test
+						  | QGEN uses default substitution parameters (seed file is discarded)
+						  | Do not run Refresh Functions
+
+	   -rf              run refresh functions (default)
+	   -nrf             do not run refresh functions
+	   -us    <number>  update set number for refresh functions
+						default is to use 'last_rfset_<db name> used + 1'
+
+	   -r               restart the DBMS before the test
+	   -nr              do not restart the DBMS before the test (default)
+
+	   -qrst            restart the DBMS before each query
+						  if -qnr > 1, it will restart the DBMS before each group.
+	   -nqrst           do not restart the DBMS before each query (default)
+
+	   -pre   <file>    prefix sql file. Prefix each query with the contents of the file.
+						   e.g., put "set qep;" in the <file> to generate QEPs.
+						   Do not use '\p\g' in the <file>, use ';' at the end of each command.
+	   -pos   <file>    postfix sql file. Postfix each query with the contents of the file.
+						   Do not use '\p\g' in the <file>, use ';' at the end of each command.
+
+	   -prof            collect per query profile information (default)
+	   -nprof           do not collect profile information
+
+	   -st              collect system statistics (default)
+	   -nst             do not collect system statistics
+	   -ds    <number>  delay between updates (in seconds) for vmstat/iostat (default=2)
+	   -par <numer>     parallelism for refresh functions, defaults to current refersh dir setup
+
+	   -h               this help page
+
+
+    Notes:
+    - test outputs are saved in a numbered output directory (see flag -o)
+    - Use the -val flag to run a validation test (TPC-H Clause 2.3.1)
+    - the script runs Reresh Functions by default, use the -nrf flag to skip them
+    - the seed file must exist before the execution of the Power Test; it contains
+      the initial seed to be used by the TPC-H tools
+    - system statistics (iostat, vmstat) are collected by default; use -nst to disable it
+
+
+=====================================================================================
+>>> Throughput Test script
+
+    Measure the ability of the system to process the most queries in the last amount
+    of time. The test is driven by queries through two or more query streams on
+    the SUT; a single refresh stream must also be executed. A test report is
+    generated at the end of the test.
+
+    The script allows the refresh stream to be run either in parallel with (default)
+    or after the query streams. See flags -prf and -nprf below.
+
+    usage: ./tput_test.sh flags
+
+	Required flags:
+	   -d     <name>    database name
+	   -df    <dir>     location of the Refresh Data Set files
+	   -s     <number>  scale factor
+	   -ns    <number>  number of query streams
+
+	Optional flags:
+	   -o     <dir>     where the tests artifacts will be stored (default=/home/ingres/dbt3/scripts/ingres_vectorwise/output)
+	   -sf    <file>    seed file name (default=/home/ingres/dbt3/scripts/ingres_vectorwise/seed_file_<database name>)
+
+	   -nprf            refresh stream starts after the completion of query streams
+	   -prf             refresh stream starts in parallel with the query streams (default)
+	   -l     <number>  When -prf is enabled, the delay in seconds before starting
+							the refresh stream (zero = no delay) (default value=0)
+
+	   -rf              run refresh functions (default)
+	   -nrf             do not run refresh functions
+
+	   -r               restart the DBMS before the test
+	   -nr              do not restart the DBMS before the test (default)
+
+	   -pre   <file>    prefix sql file. Prefix each query with the contents of the file
+						   (e.g., put "set qep\p\g" in the <file> to generate QEPs)
+	   -pos   <file>    postfix sql file. Postfix each query with the contents of the file.
+
+
+	   -st              collect system statistics (default)
+	   -nst             do not collect system statistics
+	   -ds    <number>  delay between updates (in seconds) for vmstat/iostat (default=0)
+
+	   -prof            collect per stream per query profile information (default)
+	   -nprof           do not collect profile information
+	   -par <number>    parallelism for refresh loads, defaults to whatever is in the refresh data dir
+
+	   -h               this help page
+
+
+    Notes:
+    - test outputs are saved in a numbered output directory (see flag -o)
+    - use the -ns flag to set the number of query streams
+    - the script runs Reresh Functions by default, use the -nrf flag to skip them
+    - the seed file must exist before the execution of the Power Test; it contains
+      the initial seed to be used by the TPC-H tools
+    - system statistics (iostat, vmstat) are collected by default; use -nst to disable it
+
+
+=====================================================================================
+>>> Performance Test script
+
+    The performance test consists of two runs; a run consists of one execution of
+    the Power test followed by one execution of the Throughput test. A test report
+    is generated at the end of the test.
+
+    The script allows the Throughput Test's refresh stream to be run either in
+    parallel with or after the query streams. See flags -prf and -nprf below.
+
+    usage: ./performance_test.sh
+	
+	The performance test consists of two runs. A run consists of one execution of
+	the Power test followed by one execution of the Throughput test.
+
+	Required flags:
+	   -d     <name>    database name
+	   -df    <dir>     location of the Refresh Data Set files
+	   -s     <number>  scale factor
+	   -ns    <number>  number of query streams
+
+	Optional flags:
+	   -runs  <number>  number of performance runs (default=2)
+	   -o     <dir>     where the tests artifacts will be stored (default=/home/ingres/dbt3/scripts/ingres_vectorwise/output)
+	   -sf    <file>    seed file name (default=/home/ingres/dbt3/scripts/ingres_vectorwise/seed_file_<database name>)
+
+	   -nprf            refresh stream starts after the completion of query streams
+	   -prf             refresh stream starts in parallel with the query streams (default)
+	   -l     <number>  When -prf is enabled, the delay in seconds before starting
+							the refresh stream (zero = no delay) (default value=2)
+
+	   -rf              run refresh functions (default)
+	   -nrf             do not run refresh functions
+
+	   -st              collect system statistics (default)
+	   -nst             do not collect system statistics
+	   -ds    <number>  delay between updates (in seconds) for vmstat/iostat (default=2)
+
+	   -pre   <file>    prefix sql file. Prefix each query with the contents of the file.
+						   e.g., put "set qep;" in the <file> to generate QEPs.
+						   Do not use '\p\g' in the <file>, use ';' at the end of each command.
+	   -pos   <file>    postfix sql file. Postfix each query with the contents of the file.
+						   Do not use '\p\g' in the <file>, use ';' at the end of each command.
+
+	   -prof            [power test only] collect per query/RF profile information (default)
+	   -nprof           [power test only] do not collect profile information
+
+	   -rbr             restart the DBMS before each performance run
+	   -nrbr            do not restart the DBMS before each performance run (default)
+	   -par <number>    parallelism for refresh, defaults to whatever is in teh refresh data dir
+
+	   -h               this help page
+

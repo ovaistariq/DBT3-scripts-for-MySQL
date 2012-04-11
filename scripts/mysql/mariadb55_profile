@@ -1,0 +1,73 @@
+#!/bin/bash
+
+## Please change the paths here
+rm /mnt/data/benchmarks/db_data/mysql
+ln -s /mnt/data/sandboxes/msb_md5_5_20/data/mysql /mnt/data/benchmarks/db_data/mysql
+export SANDBOX_HOME="/mnt/data/sandboxes"
+
+## No path changes needed here
+export SANDBOX_VER="5520"
+export SANDBOX_VER2="md5_5_20"
+
+export SANDBOX_DIR="${SANDBOX_HOME}/msb_${SANDBOX_VER2}"
+export SANDBOX_CNF="${SANDBOX_DIR}/my.sandbox.cnf"
+export SANDBOX_USER="msandbox"
+export SANDBOX_PASSWORD="msandbox"
+
+export SID=dbt3
+export MYSQL_CLIENT="mysql --defaults-file=${SANDBOX_CNF} -t"
+export MYSQL_ADMIN="mysqladmin --defaults-file=${SANDBOX_CNF}"
+export MYSQL_ENGINE="InnoDB"
+export MYSQLIMPORT="mysqlimport --defaults-file=${SANDBOX_CNF}"
+export MYSQL_START="${SANDBOX_DIR}/start"
+export MYSQL_STOP="${SANDBOX_DIR}/stop"
+
+wait_for_pid () {
+  while true ; do
+    sleep 1
+    case "$1" in
+      'created')
+        test -s $MYSQL_PID && return 0
+        kill -0 $2 || return 1
+        ;;
+      'removed')
+        test ! -s $MYSQL_PID && i='' && return 0
+        ;;
+      *)
+        echo "wait_for_pid () usage: wait_for_pid created|removed"
+        exit 1
+        ;;
+    esac
+  done
+
+}
+
+er () {
+  echo "ERROR: $1"
+  exit 1
+}
+
+socket() {
+	CNF=$1
+	if [ -a $CNF ]; then
+        # get line where socket is defined in the .cnf file
+        str=`cat $CNF | grep 'socket' | head -n 1`
+
+        if [ -z "$str" ]; then
+                er "socket parameter is not defined in $CNF"
+        fi
+
+        # calculate length of this line
+        size=${#str}
+
+        # find position of '=' and increment one
+	pos=`echo "$str" | sed -n 's/[=].*//p' | wc -c`
+	pos=`expr $pos + 1`
+
+        # find substring and remove spaces from it
+        MYSQL_SOCK=`echo ${str:pos:size} | tr -d ' '`
+		echo $MYSQL_SOCK
+	else
+        er "${CNF} file does not exist."
+	fi
+}

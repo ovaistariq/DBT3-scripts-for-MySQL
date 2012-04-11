@@ -1,0 +1,41 @@
+#!/bin/sh
+
+#
+# This file is released under the terms of the Artistic License.
+# Please see # the file LICENSE, included in this package, for details.
+#
+# Copyright (C) 2002 Jenny Zhang & Open Source Development Lab, Inc.
+#
+
+## Make changes to the paths below according to your environment
+DBT3_ROOT="/mnt/data/benchmarks/dbt3"
+DSS_PATH="/mnt/data/benchmarks/dbt3_table_dumps"
+
+
+## No changes are needed here
+OS_HOST="linux"
+
+DSS_QUERY="${DBT3_ROOT}/queries/mysql"
+DSS_CONFIG="${DBT3_ROOT}/src/dbgen"
+DBT3_PERL_MODULE="${DBT3_ROOT}/perlmodules"
+GTIME="${DBT3_ROOT}/src/gtime"
+PARSE_QUERY="${DBT3_ROOT}/src/parse_query"
+POWER="${DBT3_ROOT}/src/power"
+
+export OS_HOST
+export DSS_QUERY
+export DSS_PATH
+export DSS_CONFIG
+export DBT3_PERL_MODULE
+export GTIME
+export PARSE_QUERY
+export POWER
+
+# TPC-H Tools
+QGEN="${DSS_CONFIG}/qgen"
+DBGEN="${DSS_CONFIG}/dbgen"
+
+export QGEN
+export DBGEN
+
+source ${DBT3_ROOT}/scripts/mysql/${DATABASE}_profile
